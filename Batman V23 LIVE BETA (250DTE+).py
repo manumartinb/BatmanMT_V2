@@ -1578,36 +1578,13 @@ def compute_strategy_metrics(spot,r_base,exp1,dte1,k1,exp2,dte2,k2,k3,precache):
             GREEKS_CACHE[key]=(np.nan,np.nan,mid,np.nan,bid,ask,last)
             return GREEKS_CACHE[key]
 
-        # ESTRATEGIA: Usar delta_BS y theta_BS del SNAPSHOT por defecto
-        delta_snapshot = float(row.get("delta_BS", np.nan))
-        theta_snapshot = float(row.get("theta_BS", np.nan))
-        iv_snapshot = float(row.get("IV_BS", np.nan))
-
-        # Si tenemos greeks válidos del snapshot, usarlos directamente
-        if not math.isnan(delta_snapshot) and not math.isnan(iv_snapshot) and iv_snapshot > 0:
-            # Usar greeks del snapshot (más confiables)
-            delta = delta_snapshot
-            # Convertir theta a USD diario (puntos × 365 días × 100 multiplicador)
-            theta_daily = theta_snapshot * THETA_TO_DAILY if not math.isnan(theta_snapshot) else np.nan
-            iv = iv_snapshot
-            GREEKS_CACHE[key]=(delta,theta_daily,mid,iv,bid,ask,last)
-            return GREEKS_CACHE[key]
-
-        # FALLBACK: Calcular manualmente si los greeks del snapshot no están disponibles
+        # ESTRATEGIA: Calcular IV a partir del precio mid (igual que V10)
         iv = implied_vol_call_from_price(spot, K, T, r, q, mid)
         if (iv is None) or (isinstance(iv,float) and (math.isnan(iv) or iv<=0)):
-            # Último recurso: intentar usar delta del exchange
-            delta_exchange = float(row.get("delta", np.nan))
-            if not math.isnan(delta_exchange):
-                delta = delta_exchange
-                theta_daily = theta_snapshot * THETA_TO_DAILY if not math.isnan(theta_snapshot) else np.nan
-                GREEKS_CACHE[key]=(delta,theta_daily,mid,iv,bid,ask,last)
-                return GREEKS_CACHE[key]
-            # Si no hay nada disponible, retornar NaN
             GREEKS_CACHE[key]=(np.nan,np.nan,mid,iv,bid,ask,last)
             return GREEKS_CACHE[key]
 
-        # Calcular greeks manualmente si llegamos aquí
+        # Calcular greeks usando la IV calculada
         delta = bs_delta_call(spot,K,T,r,iv,q)
         theta_annual_long = bs_theta_call_excel(spot,K,T,r,iv)
         theta_daily = theta_annual_long * THETA_TO_DAILY  # Convertir a USD diario

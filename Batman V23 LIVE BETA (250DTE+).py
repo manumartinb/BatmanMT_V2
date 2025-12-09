@@ -1648,28 +1648,30 @@ def compute_strategy_metrics(spot,r_base,exp1,dte1,k1,exp2,dte2,k2,k3,precache):
     pnl_short3 = pnl_leg_at_S_T(-1, k3, p3z, S_PNL, 0.0,        r1, iv3)
     pnl_total  = pnl_short1 + pnl_long2 + pnl_short3
 
-    # Death Valley + PnLDV (puntos SPX) - Fórmula analítica exacta de V10
+    # Death Valley + PnLDV (puntos SPX): buscar el mínimo del valor del Batman en T1
     death_valley = None
     pnl_dv_points = None
     tau = max(T2 - T1, 0.0)
     if tau > 0 and (iv2 is not None) and not (isinstance(iv2, float) and math.isnan(iv2)):
         sigma2 = float(iv2)
-        # Fórmula analítica de S0: punto donde el Batman alcanza su mínimo en T1
-        S0 = float(k2) * math.exp(-(r2 + 0.5*sigma2*sigma2) * tau)
-        k_lo, k_hi = (min(k1,k3), max(k1,k3))
-        if (S0 >= k_lo) and (S0 < k_hi):
-            # S0 está dentro del intervalo [k_lo, k_hi): calcular valor exacto en S0
-            val_short1 = -max(0.0, S0 - float(k1))
-            val_short3 = -max(0.0, S0 - float(k3))
-            val_long2  = 2.0 * bs_call_price_safe(S0, float(k2), tau, r2, sigma2)
-            value_t1   = val_short1 + val_short3 + val_long2
-            pnl_dv_points = value_t1 - net_credit
-            death_valley  = S0
-        else:
-            # S0 fuera del intervalo: usar valor límite
-            value_lim = (float(k1) + float(k3)) - 2.0*float(k2)*math.exp(-r2*tau)
-            pnl_dv_points = value_lim - net_credit
-            death_valley  = float('nan')
+        r_dv = float(r2)
+
+        def batman_value_at_S(S: float) -> float:
+            """Valor teórico en T1 (shorts intrínseco, long valorada a T2)."""
+            val_short1 = -max(0.0, S - float(k1))
+            val_short3 = -max(0.0, S - float(k3))
+            val_long2 = 2.0 * bs_call_price_safe(S, float(k2), tau, r_dv, sigma2)
+            return val_short1 + val_short3 + val_long2
+
+        k_lo, k_hi = (min(k1, k3), max(k1, k3))
+        spot_ref = float(S_PNL)
+        lower = min(k_lo, spot_ref) * 0.6
+        upper = max(k_hi, spot_ref) * 1.4
+        S_grid = np.linspace(lower, upper, 300)
+        vals = np.array([batman_value_at_S(s) for s in S_grid])
+        idx = int(np.argmin(vals))
+        death_valley = float(S_grid[idx])
+        pnl_dv_points = float(vals[idx] - net_credit)
 
     # Orejas (puntos SPX)
     iv2_clean = None if (iv2 is None or (isinstance(iv2,float) and math.isnan(iv2))) else float(iv2)

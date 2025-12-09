@@ -76,6 +76,7 @@ import warnings
 
 # Imports para módulo de análisis estadístico
 from scipy import stats
+from scipy.optimize import minimize_scalar
 from sklearn.isotonic import IsotonicRegression
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.preprocessing import StandardScaler
@@ -1648,7 +1649,8 @@ def compute_strategy_metrics(spot,r_base,exp1,dte1,k1,exp2,dte2,k2,k3,precache):
     pnl_short3 = pnl_leg_at_S_T(-1, k3, p3z, S_PNL, 0.0,        r1, iv3)
     pnl_total  = pnl_short1 + pnl_long2 + pnl_short3
 
-    # Death Valley + PnLDV (puntos SPX): buscar el mínimo del valor del Batman en T1
+    # Death Valley + PnLDV (puntos SPX): buscar el mínimo EXACTO del valor del Batman en T1
+    # CORREGIDO: Usa scipy.optimize para encontrar el mínimo exacto (coincide con OptionStrat)
     death_valley = None
     pnl_dv_points = None
     tau = max(T2 - T1, 0.0)
@@ -1664,14 +1666,18 @@ def compute_strategy_metrics(spot,r_base,exp1,dte1,k1,exp2,dte2,k2,k3,precache):
             return val_short1 + val_short3 + val_long2
 
         k_lo, k_hi = (min(k1, k3), max(k1, k3))
-        spot_ref = float(S_PNL)
-        lower = min(k_lo, spot_ref) * 0.6
-        upper = max(k_hi, spot_ref) * 1.4
-        S_grid = np.linspace(lower, upper, 300)
-        vals = np.array([batman_value_at_S(s) for s in S_grid])
-        idx = int(np.argmin(vals))
-        death_valley = float(S_grid[idx])
-        pnl_dv_points = float(vals[idx] - net_credit)
+
+        # Usar optimización numérica para encontrar el MÍNIMO EXACTO
+        # Esto coincide con OptionStrat y es más preciso que la búsqueda en grilla
+        result = minimize_scalar(
+            batman_value_at_S,
+            bounds=(k_lo * 0.5, k_hi * 1.5),  # Rango amplio para capturar el Death Valley
+            method='bounded'
+        )
+
+        death_valley = float(result.x)
+        min_value = float(result.fun)
+        pnl_dv_points = min_value - net_credit
 
     # Orejas (puntos SPX)
     iv2_clean = None if (iv2 is None or (isinstance(iv2,float) and math.isnan(iv2))) else float(iv2)

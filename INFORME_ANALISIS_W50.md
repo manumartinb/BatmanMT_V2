@@ -30,6 +30,17 @@
 
 10. **EarL y EarScore como indicadores:** Valores altos correlacionan con mejor PnL.
 
+11. **⚠️ GOLDEN CROSS NO FAVORECE - DEATH CROSS ES MEJOR:** Contraintuitivamente, cuando SMA50 < SMA200 (Death Cross), la mediana del PnL es 16.27 vs 11.64 en Golden Cross. Diferencia = -4.64 pts. **p=0.0007 (significativo)**.
+
+12. **Ratio Theta K1/K2 es predictor fuerte:** Correlación Spearman r=-0.122. Ratios más negativos (theta_k1 más negativo respecto a theta_k2) → MEJOR PnL. Decil más bajo: mediana 18.65 vs 4.45 en decil más alto.
+
+13. **SPX por debajo de SMAs es favorable:** Todos los filtros de cruce muestran que estar POR DEBAJO de las SMAs mejora el PnL:
+    - SPX < SMA100: +9.24 pts de diferencia
+    - SPX < SMA50: +7.21 pts
+    - SPX < SMA7: +6.89 pts
+
+14. **BQI_ABS valores altos mejoran PnL:** Correlación r=0.107. Percentil 95 (BQI_ABS ≥ 20.59) muestra +15.31 pts de mejora, aunque con N=129.
+
 ---
 
 ## (b) Ranking de Features
@@ -123,6 +134,120 @@
 
 ---
 
+## (3.BQI) Análisis BQI_ABS
+
+### Estadísticas
+- **N:** 2,565
+- **Media:** 34.96 (sesgada por outliers)
+- **Mediana:** 1.24
+- **Rango:** 0.48 - 1009.50
+
+### Correlación
+| Método | r | p-value |
+|--------|---|---------|
+| Spearman | 0.1070 | <0.0001*** |
+| Pearson | 0.0657 | 0.0009*** |
+
+### Análisis por Percentiles BQI_ABS
+
+| Percentil | Umbral | N≥ | Mediana≥ | Mediana< | Δ Mediana | p-value |
+|-----------|--------|-----|----------|----------|-----------|---------|
+| P70 | 1.68 | 770 | 16.38 | 9.78 | +6.60 | 0.0002 |
+| P80 | 2.10 | 513 | 17.25 | 10.44 | +6.81 | 0.0001 |
+| P90 | 4.10 | 257 | 20.10 | 11.15 | +8.95 | <0.0001 |
+| P95 | 20.59 | 129 | 26.90 | 11.59 | +15.31 | <0.0001 |
+
+**Conclusión BQI_ABS:** Valores altos de BQI_ABS correlacionan positivamente con mejor PnL. El corte en P70 (≥1.68) ofrece buen balance entre mejora (+6.60) y tamaño muestral (N=770).
+
+---
+
+## (3.Theta) Ratio Theta K1 / Theta K2
+
+### Estadísticas del Ratio
+- **Media:** -1.505
+- **Mediana:** -1.484
+- **Rango:** -2.39 a -1.20
+
+### Correlación
+| Variable | Spearman r | p-value |
+|----------|------------|---------|
+| theta_k1 | -0.0977 | <0.0001*** |
+| theta_k2 | -0.0548 | 0.0055** |
+| **Ratio θK1/θK2** | **-0.1223** | **<0.0001***** |
+
+### Análisis por Deciles del Ratio
+
+| Decil | N | Media PnL | Mediana PnL |
+|-------|---|-----------|-------------|
+| 0 (más negativo) | 257 | 19.38 | **18.65** |
+| 1 | 256 | 15.77 | 14.78 |
+| 2 | 257 | 18.37 | 14.35 |
+| ... | ... | ... | ... |
+| 8 | 256 | 13.86 | 10.65 |
+| 9 (más cercano a -1) | 257 | 8.37 | **4.45** |
+
+**Conclusión Ratio Theta:** Ratios más negativos (θK1 más grande en valor absoluto respecto a θK2) correlacionan con **MEJOR PnL**. El decil inferior muestra mediana de 18.65 vs 4.45 del decil superior. Diferencia = +14.20 pts.
+
+**Interpretación:** Un ratio θK1/θK2 más negativo indica que la pata corta (k1) tiene mayor theta en valor absoluto que la pata larga (k2), lo que podría indicar estructuras con mejor captación de decaimiento temporal.
+
+---
+
+## (3.SMA) Golden Cross y Filtros SMA
+
+### ⚠️ HALLAZGO CONTRAINTUITIVO: Death Cross es MEJOR
+
+| Filtro | N True | N False | Med True | Med False | Δ | p-value | Sig |
+|--------|--------|---------|----------|-----------|---|---------|-----|
+| **Golden Cross (SMA50>SMA200)** | 1,896 | 669 | 11.64 | 16.27 | **-4.64** | 0.0007 | *** |
+
+**Conclusión:** Operar en Death Cross (SMA50 < SMA200) produce **MEJOR** PnL mediano que en Golden Cross.
+
+### Cruces de SMAs
+
+| Filtro | N True | N False | Med True | Med False | Δ | p-value |
+|--------|--------|---------|----------|-----------|---|---------|
+| SMA7 > SMA20 | 1,474 | 1,091 | 10.03 | 15.10 | -5.07 | 0.0001*** |
+| SMA20 > SMA50 | 1,643 | 922 | 12.47 | 12.69 | -0.21 | 0.1262 |
+| SMA7 > SMA50 | 1,603 | 962 | 10.15 | 16.31 | -6.16 | <0.0001*** |
+| SMA20 > SMA100 | 1,797 | 768 | 11.70 | 15.23 | -3.53 | 0.0020** |
+| **SMA50 > SMA100** | **1,851** | **714** | **10.25** | **19.86** | **-9.61** | **<0.0001***** |
+| SMA20 > SMA200 | 1,888 | 677 | 12.01 | 14.90 | -2.89 | 0.0089** |
+
+### SPX vs SMA Individual
+
+| Filtro | N Above | N Below | Med Above | Med Below | Δ | p-value |
+|--------|---------|---------|-----------|-----------|---|---------|
+| SPX > SMA7 | 1,389 | 1,176 | 8.95 | 15.84 | -6.89 | <0.0001*** |
+| SPX > SMA20 | 1,463 | 1,102 | 9.80 | 15.06 | -5.26 | 0.0001*** |
+| SPX > SMA50 | 1,552 | 1,013 | 9.19 | 16.40 | -7.21 | <0.0001*** |
+| **SPX > SMA100** | **1,667** | **898** | **8.90** | **18.14** | **-9.24** | **<0.0001***** |
+| SPX > SMA200 | 1,846 | 719 | 11.60 | 15.60 | -4.00 | 0.0004*** |
+
+**Conclusión SMA:** TODOS los indicadores de tendencia muestran que estar **POR DEBAJO** de las medias móviles mejora el PnL. El filtro más potente es **SPX < SMA100** con +9.24 pts de mejora en mediana.
+
+---
+
+## (5) Combinaciones de Filtros Óptimas
+
+### Baseline
+- **N total:** 2,565
+- **Mediana PnL:** 12.57
+
+### Mejores Combinaciones
+
+| Combinación | N | Mediana | Δ vs Baseline | Media | Std |
+|-------------|---|---------|---------------|-------|-----|
+| **SPX < SMA100 + HV50 Alto** | 342 | **30.52** | **+17.95** | 29.53 | 39.09 |
+| Death Cross + HV50 Alto | 454 | 27.49 | +14.91 | 23.92 | 37.05 |
+| Golden Cross + HV50 Alto | 47 | 29.30 | +16.73 | 34.82 | 37.88 |
+| Death Cross + BQI Alto (P70) | 209 | 21.20 | +8.62 | 22.39 | 27.07 |
+| SPX < SMA100 + BQI Alto (P70) | 414 | 20.23 | +7.65 | 21.21 | 26.13 |
+| Golden Cross + BQI Alto (P70) | 561 | 14.78 | +2.20 | 15.41 | 25.19 |
+
+**Mejor combinación:** `SPX < SMA100 AND SPX_HV50 ≥ 25` → Mediana = 30.52 (+17.95 vs baseline)
+
+---
+
 ## (d) Validación Out-of-Sample (OOS)
 
 ### Resultados por Fold (TimeSeriesSplit, 5 folds)
@@ -160,23 +285,52 @@
 Existe una señal predictiva **débil pero estadísticamente significativa** para `PnL_fwd_pts_50_mediana`.
 
 ### Predictores Clave (en T+0)
-1. **Posición del SPX respecto a sus medias móviles** (SMA100, SMA200, SMA50)
-2. **Volatilidad histórica** (HV50, HV20)
-3. **Indicadores de calidad de la posición** (BQI_V2_ABS, FF_BAT)
-4. **Momentum** (MACD, RSI)
+1. **Posición del SPX respecto a sus medias móviles** (SPX < SMA100 es el más fuerte)
+2. **Volatilidad histórica** (HV50, HV20) - valores altos favorecen
+3. **Ratio Theta K1/K2** (valores más negativos = mejor)
+4. **Indicadores de calidad** (BQI_ABS, BQI_V2_ABS) - valores altos favorecen
+5. **Momentum negativo** (MACD, RSI bajos)
+
+### ⚠️ Hallazgo Contraintuitivo
+**El Golden Cross NO es favorable.** Operar en Death Cross (SMA50 < SMA200) produce mejor PnL (+4.64 pts de mejora, p=0.0007).
 
 ### Reglas Simples Recomendadas
+
+**Regla Principal (máxima mejora):**
 ```
-SI (SPX_HV50 > 28 OR SPX_minus_SMA100 < -325)
-   Y BQI_V2_ABS > 50
-ENTONCES → PnL mediano esperado ~25-30 pts
+SI (SPX < SMA100) Y (SPX_HV50 ≥ 25)
+ENTONCES → PnL mediano esperado ~30.5 pts (vs 12.6 baseline)
+           Mejora: +17.95 pts | N=342
 ```
+
+**Regla Alternativa (mayor soporte muestral):**
+```
+SI (SPX < SMA100) Y (BQI_ABS ≥ 1.68)
+ENTONCES → PnL mediano esperado ~20.2 pts
+           Mejora: +7.65 pts | N=414
+```
+
+**Regla basada en Theta:**
+```
+SI (Ratio θK1/θK2 < -1.70)  [Percentil 10]
+ENTONCES → PnL mediano esperado ~18.6 pts
+           Mejora: +6.0 pts | N=257
+```
+
+### Resumen de Filtros SMA
+
+| Filtro | Efecto | Recomendación |
+|--------|--------|---------------|
+| Golden Cross (SMA50>SMA200) | NEGATIVO (-4.6 pts) | NO usar como entrada |
+| SPX < SMA100 | POSITIVO (+9.2 pts) | Usar como filtro de entrada |
+| SMA50 < SMA100 | POSITIVO (+9.6 pts) | Usar como filtro de entrada |
 
 ### Limitaciones
 - Alta variabilidad OOS (Spearman varía de -0.08 a +0.36 entre folds)
 - Señal podría ser no estacionaria (mejor en periodos de alta volatilidad)
+- Los filtros con HV50 alto reducen significativamente el N disponible
 - Recomendación: usar como filtro/complemento, no como predictor único
 
 ---
 
-*Análisis generado automáticamente. Archivos adicionales: `analysis_w50_correlations.csv`, `analysis_w50_thresholds.csv`*
+*Análisis generado automáticamente. Archivos adicionales: `analysis_w50_correlations.csv`, `analysis_w50_thresholds.csv`, `analysis_w50_extended.py`*
